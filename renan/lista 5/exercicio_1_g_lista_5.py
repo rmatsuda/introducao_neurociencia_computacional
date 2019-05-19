@@ -49,51 +49,57 @@ def I_K(V, n):  return g_K * n ** 4 * (V - E_K)
 
 #  Leak
 def I_L(V):     return g_L * (V - E_L)
-
-
-# External current
-start=5
-finish=30
-def I_inj(t, rand):  # step up 10 uA/cm^2 every 100ms for 400ms
-    return rand * (t >= 0)
-    # return 10*t
-
 # The time to integrate over
 dt=0.002
-t = sp.arange(0.0, 100.0, dt)
+t = sp.arange(0.0, 10.0, dt)
+
+# External current
+# start=5
+# finish=30
+rand = np.random.normal(0,3,len(t))
+# print(rand)
+# def I_inj(t):  # step up 10 uA/cm^2 every 100ms for 400ms
+#     return rand[t]
+    # return 10*t
 
 # rand = []
 # for i in range(len(t)):
 #     rand.append(random.normalvariate(0,3))
-print(I_inj(t,random.normalvariate(0,3)))
+
+# plt.figure()
+#
+# plt.plot(t, rand)
+# plt.xlabel('t (ms)')
+# plt.ylabel('$I_{inj}$ ($\\mu{A}/cm^2$)')
+# plt.legend()
+# plt.show()
+
 plt.figure()
+volt=[]
+for i in range(len(t)):
+    def I_inj(t):  # step up 10 uA/cm^2 every 100ms for 400ms
+        return np.random.normal(0,3)
 
-plt.plot(t, I_inj(t, random.normalvariate(0,3)))
-plt.xlabel('t (ms)')
-plt.ylabel('$I_{inj}$ ($\\mu{A}/cm^2$)')
-plt.legend()
-plt.show()
+    def dALLdt(X, t, rand):
+        V, m, h, n = X
 
-plt.figure()
+        # calculate membrane potential & activation variables
+        dVdt = (I_inj(t) - I_Na(V, m, h) - I_K(V, n) - I_L(V)) / C_m
+        dmdt = alpha_m(V) * (1.0 - m) - beta_m(V) * m
+        dhdt = alpha_h(V) * (1.0 - h) - beta_h(V) * h
+        dndt = alpha_n(V) * (1.0 - n) - beta_n(V) * n
 
-def dALLdt(X, t):
-    V, m, h, n = X
+        return dVdt, dmdt, dhdt, dndt
 
-    # calculate membrane potential & activation variables
-    dVdt = (I_inj(t, random.normalvariate(0,3)) - I_Na(V, m, h) - I_K(V, n) - I_L(V)) / C_m
-    dmdt = alpha_m(V) * (1.0 - m) - beta_m(V) * m
-    dhdt = alpha_h(V) * (1.0 - h) - beta_h(V) * h
-    dndt = alpha_n(V) * (1.0 - n) - beta_n(V) * n
-    return dVdt, dmdt, dhdt, dndt
+    #V0 = -65 mV, m(-65) = 0,05,  h(-65) = 0,6, n(-65) = 0,32
 
-#V0 = -65 mV, m(-65) = 0,05,  h(-65) = 0,6, n(-65) = 0,32
+    X = odeint(dALLdt, [-65, 0.05, 0.6, 0.32], [0], args=(rand, ))
+    V = X[:, 0]
+    volt.append(V)
 
-X = odeint(dALLdt, [-65, 0.05, 0.6, 0.32], t)
-V = X[:, 0]
-
-plt.plot(t, V)
+plt.plot(t, volt)
 
 plt.title('Hodgkin-Huxley Neuron')
 plt.ylabel('V (mV)')
-plt.legend()
+#plt.legend()
 plt.show()
