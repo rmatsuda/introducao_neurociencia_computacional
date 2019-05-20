@@ -2,11 +2,6 @@ import scipy as sp
 import pylab as plt
 from scipy.integrate import odeint, ode
 from scipy.signal import find_peaks
-import numpy as np
-from scipy import stats
-import scipy.linalg as lin
-
-## Full Hodgkin-Huxley Model (copied from Computational Lab 2)
 
 # Constants
 C_m = 1.0  # membrane capacitance, in uF/cm^2
@@ -18,8 +13,6 @@ E_K = -77.0
 E_L = -54.4
 
 
-# Channel gating kinetics
-# Functions of membrane voltage
 def alpha_m(V): return 0.1 * (V + 40.0) / (1.0 - sp.exp(-(V + 40.0) / 10.0))
 
 
@@ -39,11 +32,11 @@ def beta_n(V):  return 0.125 * sp.exp(-(V + 65) / 80.0)
 
 
 # Membrane currents (in uA/cm^2)
-#  Sodium (Na = element name)
+#  Sodium
 def I_Na(V, m, h): return g_Na * m ** 3 * h * (V - E_Na)
 
 
-#  Potassium (K = element name)
+#  Potassium
 def I_K(V, n):  return g_K * n ** 4 * (V - E_K)
 
 
@@ -52,16 +45,17 @@ def I_L(V):     return g_L * (V - E_L)
 
 
 # External current
-voltage = 8
+I = 8
 start=0
 finish=1
 # L=13.60 # limiar A=10
-L=15#mesma amplitude A=10
+# L=15#mesma amplitude A=10
 #L=16.8 # limiar A=7
-L=17.5#mesma amplitude A=7
-A=7
-def I_inj(t):  # step up 10 uA/cm^2 every 100ms for 400ms
-    return voltage * (t >= start) - voltage * (t > finish) + A * (t > finish+L) - A * (t > finish+L+1)
+#L=17.5#mesma amplitude A=7
+L = 15
+A=10
+def I_inj(t):
+    return I * (t >= start) - I * (t > finish) + A * (t > finish+L) - A * (t > finish+L+1)
     # return 10*t
 
 # The time to integrate over

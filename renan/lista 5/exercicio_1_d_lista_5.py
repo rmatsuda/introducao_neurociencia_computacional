@@ -2,10 +2,6 @@ import scipy as sp
 import pylab as plt
 from scipy.integrate import odeint, ode
 import numpy as np
-from scipy import stats
-import scipy.linalg as lin
-
-## Full Hodgkin-Huxley Model (copied from Computational Lab 2)
 
 # Constants
 C_m = 1.0  # membrane capacitance, in uF/cm^2
@@ -16,9 +12,6 @@ E_Na = 50.0  # Nernst reversal potentials, in mV
 E_K = -77.0
 E_L = -54.4
 
-
-# Channel gating kinetics
-# Functions of membrane voltage
 def alpha_m(V): return 0.1 * (V + 40.0) / (1.0 - sp.exp(-(V + 40.0) / 10.0))
 
 
@@ -36,24 +29,20 @@ def alpha_n(V): return 0.01 * (V + 55.0) / (1.0 - sp.exp(-(V + 55.0) / 10.0))
 
 def beta_n(V):  return 0.125 * sp.exp(-(V + 65) / 80.0)
 
-
 # Membrane currents (in uA/cm^2)
-#  Sodium (Na = element name)
+#  Sodium
 def I_Na(V, m, h): return g_Na * m ** 3 * h * (V - E_Na)
 
-
-#  Potassium (K = element name)
+#  Potassium
 def I_K(V, n):  return g_K * n ** 4 * (V - E_K)
-
 
 #  Leak
 def I_L(V):     return g_L * (V - E_L)
 
-
 # External current
 start=5
 finish=105
-def I_inj(t, voltage):  # step up 10 uA/cm^2 every 100ms for 400ms
+def I_inj(t, voltage):
     return voltage * (t > start) - voltage * (t > finish)
     # return 10*t
 
@@ -61,24 +50,22 @@ def I_inj(t, voltage):  # step up 10 uA/cm^2 every 100ms for 400ms
 dt=0.05
 t = sp.arange(0.0, 110.0, dt)
 
-
-voltage = [1, 2, 3, 4]
-voltage = np.linspace(1,2.5,10)
+I = np.linspace(1,2.5,10)
 plt.figure()
-for i in range(len(voltage)):
-    plt.plot(t, I_inj(t, voltage[i]))
+for i in range(len(I)):
+    plt.plot(t, I_inj(t, I[i]))
     plt.xlabel('t (ms)')
     plt.ylabel('$I_{inj}$ ($\\mu{A}/cm^2$)')
-plt.legend(voltage)
+plt.legend(I)
 plt.show()
 
 plt.figure()
-for i in range(len(voltage)):
+for i in range(len(I)):
     def dALLdt(X, t):
         V, m, h, n = X
 
         # calculate membrane potential & activation variables
-        dVdt = (I_inj(t,voltage[i]) - I_Na(V, m, h) - I_K(V, n) - I_L(V)) / C_m
+        dVdt = (I_inj(t,I[i]) - I_Na(V, m, h) - I_K(V, n) - I_L(V)) / C_m
         dmdt = alpha_m(V) * (1.0 - m) - beta_m(V) * m
         dhdt = alpha_h(V) * (1.0 - h) - beta_h(V) * h
         dndt = alpha_n(V) * (1.0 - n) - beta_n(V) * n
@@ -93,25 +80,25 @@ for i in range(len(voltage)):
 
 plt.title('Hodgkin-Huxley Neuron')
 plt.ylabel('V (mV)')
-plt.legend(voltage)
+plt.legend(I)
 plt.show()
 
-voltage = np.linspace(4,6.5,8)
+I = np.linspace(5.5,6.5,8)
 plt.figure()
-for i in range(len(voltage)):
-    plt.plot(t, I_inj(t, voltage[i]))
+for i in range(len(I)):
+    plt.plot(t, I_inj(t, I[i]))
     plt.xlabel('t (ms)')
     plt.ylabel('$I_{inj}$ ($\\mu{A}/cm^2$)')
-plt.legend(voltage)
+plt.legend(I)
 plt.show()
 
 plt.figure()
-for i in range(len(voltage)):
+for i in range(len(I)):
     def dALLdt(X, t):
         V, m, h, n = X
 
         # calculate membrane potential & activation variables
-        dVdt = (I_inj(t,voltage[i]) - I_Na(V, m, h) - I_K(V, n) - I_L(V)) / C_m
+        dVdt = (I_inj(t,I[i]) - I_Na(V, m, h) - I_K(V, n) - I_L(V)) / C_m
         dmdt = alpha_m(V) * (1.0 - m) - beta_m(V) * m
         dhdt = alpha_h(V) * (1.0 - h) - beta_h(V) * h
         dndt = alpha_n(V) * (1.0 - n) - beta_n(V) * n
@@ -126,6 +113,6 @@ for i in range(len(voltage)):
 
 plt.title('Hodgkin-Huxley Neuron')
 plt.ylabel('V (mV)')
-plt.legend(voltage)
+plt.legend(I)
 plt.show()
 

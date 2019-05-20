@@ -1,10 +1,6 @@
 import scipy as sp
 import pylab as plt
 from scipy.integrate import odeint, ode
-from scipy import stats
-import scipy.linalg as lin
-
-## Full Hodgkin-Huxley Model (copied from Computational Lab 2)
 
 # Constants
 C_m = 1.0  # membrane capacitance, in uF/cm^2
@@ -15,9 +11,6 @@ E_Na = 50.0  # Nernst reversal potentials, in mV
 E_K = -77.0
 E_L = -54.4
 
-
-# Channel gating kinetics
-# Functions of membrane voltage
 def alpha_m(V): return 0.1 * (V + 40.0) / (1.0 - sp.exp(-(V + 40.0) / 10.0))
 
 
@@ -37,11 +30,11 @@ def beta_n(V):  return 0.125 * sp.exp(-(V + 65) / 80.0)
 
 
 # Membrane currents (in uA/cm^2)
-#  Sodium (Na = element name)
+#  Sodium
 def I_Na(V, m, h): return g_Na * m ** 3 * h * (V - E_Na)
 
 
-#  Potassium (K = element name)
+#  Potassium
 def I_K(V, n):  return g_K * n ** 4 * (V - E_K)
 
 
@@ -50,8 +43,8 @@ def I_L(V):     return g_L * (V - E_L)
 
 
 # External current
-def I_inj(t, voltage):  # step up 10 uA/cm^2 every 100ms for 400ms
-    return voltage * (t > 100) - voltage * (t > 200)
+def I_inj(t, I):  # step up 10 uA/cm^2 every 100ms for 400ms
+    return I * (t > 100) - I * (t > 200)
     # return 10*t
 
 
@@ -115,10 +108,11 @@ plt.legend()
 plt.subplot(2, 2, 3)
 plt.plot(t, m, 'r', label='m')
 plt.ylabel('V (mV)')
+plt.xlabel('Time (ms)')
 plt.legend()
 plt.subplot(2, 2, 4)
 plt.plot(t, h, 'g', label='h')
 
-plt.xlabel('Time')
+plt.xlabel('Time (ms)')
 plt.legend()
 plt.show()

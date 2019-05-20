@@ -1,105 +1,78 @@
-import scipy as sp
-import pylab as plt
-from scipy.integrate import odeint, ode
+#%%
+from brian2 import *
 import numpy as np
+import math
 import random
-from scipy import stats
-import scipy.linalg as lin
 
-## Full Hodgkin-Huxley Model (copied from Computational Lab 2)
+start_scope()
+El = -54.4 * mV
+ENa = 50 * mV
+EK = -77 * mV
+gl = 0.3 * msiemens / cm ** 2
+gNa0 = 120 * msiemens / cm ** 2
+gK = 36 * msiemens / cm ** 2
 
-# Constants
-C_m = 1.0  # membrane capacitance, in uF/cm^2
-g_Na = 120.0  # maximum conducances, in mS/cm^2
-g_K = 36.0
-g_L = 0.3
-E_Na = 50.0  # Nernst reversal potentials, in mV
-E_K = -77.0
-E_L = -54.4
+Cm = 1 * uF / cm ** 2
+duration = 1000
+dt = 2 * ms
 
+t_start = 0
+t_end = duration
+sigma = 0.03 * amp / metre ** 2
+dt_cur = 2
+sigma = sigma / (np.sqrt(dt_cur))
+mi = 0
+unit_time = ms
 
-# Channel gating kinetics
-# Functions of membrane voltage
-def alpha_m(V): return 0.1 * (V + 40.0) / (1.0 - sp.exp(-(V + 40.0) / 10.0))
+tmp_size = 1 + t_end  # +1 for t=0
 
+tmp = np.zeros((tmp_size // dt_cur, 1)) * amp / metre ** 2
+size = 30
+x = np.linspace(-size, size, size // dt_cur) * amp / metre ** 2
+normal = np.asarray((1 / np.sqrt(2 * math.pi * sigma ** 2)) * math.e ** (-((x - mi) ** 2) / (2 * sigma ** 2)))
 
-def beta_m(V):  return 4.0 * sp.exp(-(V + 65.0) / 18.0)
+normal = normal * amp / metre ** 2
+for k in range(int(tmp_size / dt_cur)):
+    tmp[k, 0] = random.choice(normal)
 
+input_density = TimedArray(tmp, dt=dt)
 
-def alpha_h(V): return 0.07 * sp.exp(-(V + 65.0) / 20.0)
+# Typical equations
+eqs = '''
+# The same equations for the whole neuron, but possibly different parameter values
+# distributed transmembrane current
+dv/dt = (gl*(El-v) - gNa*(m*m*m)*h*(v-ENa) - gK*(n*n*n*n)*(v-EK) + input_density(t,i))/Cm : volt
 
+dm/dt = alpham * (1-m) - betam * m : 1
+dn/dt = alphan * (1-n) - betan * n : 1
+dh/dt = alphah * (1-h) - betah * h : 1
+alpham = (0.1/mV) * (v+40*mV) / (1-(exp((-v-40*mV) / (10*mV))))/ms : Hz
+betam = 4 * exp((-v-(65*mV))/(18*mV))/ms : Hz
+alphah = 0.07 * exp((-v-(65*mV))/(20*mV))/ms : Hz
+betah = 1/(exp((-v-35*mV) / (10*mV)) + 1)/ms : Hz
+alphan = (0.01/mV) * (v+55*mV) / (1-(exp((-v-55*mV) / (10*mV))))/ms : Hz
+betan = 0.125*exp((-v-(65*mV))/(80*mV))/ms : Hz
+gNa : siemens/meter**2
+'''
 
-def beta_h(V):  return 1.0 / (1.0 + sp.exp(-(V + 35.0) / 10.0))
+neuron = NeuronGroup(20, eqs,
+                     threshold='v > 30*mV', reset='v=-65*mV',
+                     method='euler', dt=0.025 * ms)
 
+neuron.v = -65 * mV
+neuron.h = 0.6
+neuron.m = 0.05
+neuron.n = 0.32
+neuron.gNa = gNa0
+M = StateMonitor(neuron, variables=True, record=True)
 
-def alpha_n(V): return 0.01 * (V + 55.0) / (1.0 - sp.exp(-(V + 55.0) / 10.0))
+run(duration * ms)
 
+figure(figsize=(16, 4))
+plot(M.t / ms, M.v[0] / mV)
+xlabel('t (ms)')
+ylabel('V (mV)')
+plt.legend(loc=1)
+title('t-V curve')
 
-def beta_n(V):  return 0.125 * sp.exp(-(V + 65) / 80.0)
-
-
-# Membrane currents (in uA/cm^2)
-#  Sodium (Na = element name)
-def I_Na(V, m, h): return g_Na * m ** 3 * h * (V - E_Na)
-
-
-#  Potassium (K = element name)
-def I_K(V, n):  return g_K * n ** 4 * (V - E_K)
-
-
-#  Leak
-def I_L(V):     return g_L * (V - E_L)
-# The time to integrate over
-dt=0.002
-t = sp.arange(0.0, 10.0, dt)
-
-# External current
-# start=5
-# finish=30
-rand = np.random.normal(0,3,len(t))
-# print(rand)
-# def I_inj(t):  # step up 10 uA/cm^2 every 100ms for 400ms
-#     return rand[t]
-    # return 10*t
-
-# rand = []
-# for i in range(len(t)):
-#     rand.append(random.normalvariate(0,3))
-
-# plt.figure()
-#
-# plt.plot(t, rand)
-# plt.xlabel('t (ms)')
-# plt.ylabel('$I_{inj}$ ($\\mu{A}/cm^2$)')
-# plt.legend()
-# plt.show()
-
-plt.figure()
-volt=[]
-for i in range(len(t)):
-    def I_inj(t):  # step up 10 uA/cm^2 every 100ms for 400ms
-        return np.random.normal(0,3)
-
-    def dALLdt(X, t, rand):
-        V, m, h, n = X
-
-        # calculate membrane potential & activation variables
-        dVdt = (I_inj(t) - I_Na(V, m, h) - I_K(V, n) - I_L(V)) / C_m
-        dmdt = alpha_m(V) * (1.0 - m) - beta_m(V) * m
-        dhdt = alpha_h(V) * (1.0 - h) - beta_h(V) * h
-        dndt = alpha_n(V) * (1.0 - n) - beta_n(V) * n
-
-        return dVdt, dmdt, dhdt, dndt
-
-    #V0 = -65 mV, m(-65) = 0,05,  h(-65) = 0,6, n(-65) = 0,32
-
-    X = odeint(dALLdt, [-65, 0.05, 0.6, 0.32], [0], args=(rand, ))
-    V = X[:, 0]
-    volt.append(V)
-
-plt.plot(t, volt)
-
-plt.title('Hodgkin-Huxley Neuron')
-plt.ylabel('V (mV)')
-#plt.legend()
-plt.show()
+show()
